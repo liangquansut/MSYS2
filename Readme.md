@@ -6,4 +6,5 @@
 ## vscode_libmodbus_test
 最简单的验证libmodbus库的程序
 
-## ……
+## win_linux_libmodbus_test
+开发跨平台的libmodbus测试程序
