@@ -17,6 +17,7 @@ int main() {
         printf("Failed to start RTU thread\n");
         return -1;
     }
+    
     if (start_thread(&proc_thread, processing_thread, &proc_cfg) != 0) {
         printf("Failed to start processing thread\n");
         stop_flag(&rtu_cfg);

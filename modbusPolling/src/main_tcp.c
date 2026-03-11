@@ -19,6 +19,7 @@ int main() {
         join_thread(tcp_thread);
         return -1;
     }
+    
     if (start_thread(&proc_thread, processing_thread, &proc_cfg) != 0) {
         printf("Failed to start processing thread\n");
         stop_flag(&tcp_cfg);
