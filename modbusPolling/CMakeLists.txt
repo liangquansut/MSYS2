@@ -32,12 +32,16 @@ include_directories(${PROJECT_SOURCE_DIR}/include)
 add_executable(rtu_poll 
                 src/main_rtu.c
                 src/polling.c
-                src/rtu_poll.c)
+                src/rtu_poll.c
+                src/thread_safe_queue.c
+                src/processing_thread.c)
 add_executable(rtu_server src/rtu_server.c)
 add_executable(tcp_poll 
                 src/main_tcp.c
                 src/polling.c
-                src/tcp_poll.c)
+                src/tcp_poll.c
+                src/thread_safe_queue.c
+                src/processing_thread.c)
 add_executable(tcp_server src/tcp_server.c)
 
 # -----------------------------

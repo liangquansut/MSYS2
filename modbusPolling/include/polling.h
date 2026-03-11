@@ -22,6 +22,8 @@ typedef struct {
 // RTU / TCP 轮询线程入口
 thread_ret_t THREAD_CALL rtu_poll_thread(void *arg);
 thread_ret_t THREAD_CALL tcp_poll_thread(void *arg);
+// 数据处理线程入口
+thread_ret_t THREAD_CALL processing_thread(void *arg);
 
 // 启动/停止线程的简单封装
 int start_thread(thread_t *t, thread_ret_t (THREAD_CALL *func)(void*), void *arg);

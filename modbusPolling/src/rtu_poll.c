@@ -1,6 +1,11 @@
 // src/rtu_poll.c
 #include "polling.h"
 #include <time.h>
+#include <stdio.h>
+#include <string.h>
+#include "thread_safe_queue.h"
+
+extern ts_queue_t g_queue;
 
 static void sleep_ms(int ms) {
 #ifdef _WIN32
@@ -29,9 +34,16 @@ thread_ret_t THREAD_CALL rtu_poll_thread(void *arg) {
     while (cfg->running) {
         int rc = modbus_read_registers(ctx, 0, 10, reg);
         if (rc == 10) {
-            printf("[RTU] regs[0]=%d\n", reg[0]);
+            //printf("[RTU] regs[0]=%d\n", reg[0]);
+
+            // 将数据放入线程安全队列
+            data_packet_t pkt;
+            memcpy(pkt.regs, reg, sizeof(reg));
+            pkt.source = 0; // 0=RTU
+            ts_queue_push(&g_queue, &pkt);
+
         } else {
-            printf("[RTU] read error\n");
+            //printf("[RTU] read error\n");
         }
         sleep_ms(cfg->interval_ms);
     }
