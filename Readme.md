@@ -3,6 +3,9 @@
 
 子工程包括如下内容
 
+## modbusPolling
+持续开发的工程，利用轮巡的方式，通过485进行通讯
+
 ## vscode_libmodbus_test
 最简单的验证libmodbus库的程序
 
