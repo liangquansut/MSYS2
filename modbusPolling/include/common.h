@@ -3,7 +3,7 @@
 #include <modbus/modbus.h>
 
 #ifdef _WIN32
-    #define SERIAL_PORT "COM3"
+    #define SERIAL_PORT "COM6"
 #else
     #define SERIAL_PORT "/dev/ttyUSB0"
 #endif
