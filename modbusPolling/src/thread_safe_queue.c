@@ -3,6 +3,7 @@
 
 void ts_queue_init(ts_queue_t *q) {
     q->head = q->tail = q->count = 0;
+    q->dropped_count = 0;
 
 #ifdef _WIN32
     InitializeCriticalSection(&q->lock);
@@ -13,15 +14,25 @@ void ts_queue_init(ts_queue_t *q) {
 #endif
 }
 
-void ts_queue_push(ts_queue_t *q, data_packet_t *pkt) {
+int ts_queue_push(ts_queue_t *q, const data_packet_t *pkt) {
 #ifdef _WIN32
     EnterCriticalSection(&q->lock);
 #else
     pthread_mutex_lock(&q->lock);
 #endif
 
+    if (q->count >= TS_QUEUE_CAPACITY) {
+        q->dropped_count++;
+#ifdef _WIN32
+        LeaveCriticalSection(&q->lock);
+#else
+        pthread_mutex_unlock(&q->lock);
+#endif
+        return 0;
+    }
+
     q->buffer[q->tail] = *pkt;
-    q->tail = (q->tail + 1) % 128;
+    q->tail = (q->tail + 1) % TS_QUEUE_CAPACITY;
     q->count++;
 
 #ifdef _WIN32
@@ -31,6 +42,8 @@ void ts_queue_push(ts_queue_t *q, data_packet_t *pkt) {
     pthread_mutex_unlock(&q->lock);
     pthread_cond_signal(&q->cond);
 #endif
+
+    return 1;
 }
 
 int ts_queue_pop(ts_queue_t *q, data_packet_t *out) {
@@ -44,7 +57,7 @@ int ts_queue_pop(ts_queue_t *q, data_packet_t *out) {
 #endif
 
     *out = q->buffer[q->head];
-    q->head = (q->head + 1) % 128;
+    q->head = (q->head + 1) % TS_QUEUE_CAPACITY;
     q->count--;
 
 #ifdef _WIN32
@@ -54,4 +67,20 @@ int ts_queue_pop(ts_queue_t *q, data_packet_t *out) {
 #endif
 
     return 1;
+}
+
+uint64_t ts_queue_get_drop_count(ts_queue_t *q) {
+    uint64_t dropped;
+
+#ifdef _WIN32
+    EnterCriticalSection(&q->lock);
+    dropped = q->dropped_count;
+    LeaveCriticalSection(&q->lock);
+#else
+    pthread_mutex_lock(&q->lock);
+    dropped = q->dropped_count;
+    pthread_mutex_unlock(&q->lock);
+#endif
+
+    return dropped;
 }

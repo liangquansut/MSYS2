@@ -7,6 +7,16 @@
 
 extern ts_queue_t g_queue;
 
+static uint64_t now_mono_ms(void) {
+#ifdef _WIN32
+    return (uint64_t)GetTickCount64();
+#else
+    struct timespec ts;
+    clock_gettime(CLOCK_MONOTONIC, &ts);
+    return (uint64_t)ts.tv_sec * 1000ULL + (uint64_t)ts.tv_nsec / 1000000ULL;
+#endif
+}
+
 static void sleep_ms(int ms) {
 #ifdef _WIN32
     Sleep(ms);
@@ -19,7 +29,7 @@ static void sleep_ms(int ms) {
 thread_ret_t THREAD_CALL rtu_poll_thread(void *arg) {
     poll_config_t *cfg = (poll_config_t*)arg;
 
-    modbus_t *ctx = modbus_new_rtu(SERIAL_PORT, 9600, 'N', 8, 1);
+    modbus_t *ctx = modbus_new_rtu(SERIAL_PORT_CLIENT, 9600, 'N', 8, 1);
     if (!ctx) return 0;
 
     modbus_set_slave(ctx, SLAVE_ID);
@@ -30,21 +40,21 @@ thread_ret_t THREAD_CALL rtu_poll_thread(void *arg) {
     }
 
     uint16_t reg[10];
+    uint64_t seq = 0;
 
     while (cfg->running) {
         int rc = modbus_read_registers(ctx, 0, 10, reg);
         if (rc == 10) {
-            //printf("[RTU] regs[0]=%d\n", reg[0]);
-
-            // 将数据放入线程安全队列
             data_packet_t pkt;
             memcpy(pkt.regs, reg, sizeof(reg));
             pkt.source = 0; // 0=RTU
+            pkt.seq = seq++;
+            pkt.sample_mono_ms = now_mono_ms();
             ts_queue_push(&g_queue, &pkt);
-
         } else {
-            //printf("[RTU] read error\n");
+            printf("[RTU] read error: %s\n", modbus_strerror(errno));
         }
+
         sleep_ms(cfg->interval_ms);
     }
 

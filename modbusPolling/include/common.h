@@ -3,9 +3,11 @@
 #include <modbus/modbus.h>
 
 #ifdef _WIN32
-    #define SERIAL_PORT "COM6"
+    #define SERIAL_PORT_SERVER "COM5"
+    #define SERIAL_PORT_CLIENT "COM6"
 #else
-    #define SERIAL_PORT "/dev/ttyUSB0"
+    #define SERIAL_PORT_SERVER "/dev/ttyUSB0"
+    #define SERIAL_PORT_CLIENT "/dev/ttyUSB1"
 #endif
 
 #define SLAVE_ID 1

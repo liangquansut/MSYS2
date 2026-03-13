@@ -1,9 +1,20 @@
 // src/tcp_poll.c
 #include "polling.h"
 #include <time.h>
+#include <string.h>
 #include "thread_safe_queue.h"
 
 extern ts_queue_t g_queue;
+
+static uint64_t now_mono_ms(void) {
+#ifdef _WIN32
+    return (uint64_t)GetTickCount64();
+#else
+    struct timespec ts;
+    clock_gettime(CLOCK_MONOTONIC, &ts);
+    return (uint64_t)ts.tv_sec * 1000ULL + (uint64_t)ts.tv_nsec / 1000000ULL;
+#endif
+}
 
 static void sleep_ms(int ms) {
 #ifdef _WIN32
@@ -27,19 +38,17 @@ thread_ret_t THREAD_CALL tcp_poll_thread(void *arg) {
     }
 
     uint16_t reg[10];
+    uint64_t seq = 0;
 
     while (cfg->running) {
         int rc = modbus_read_registers(ctx, 0, 10, reg);
         if (rc == 10) {
-            //printf("[TCP] regs[0]=%d\n", reg[0]);
-
-            // 将数据放入线程安全队列
             data_packet_t pkt;
             memcpy(pkt.regs, reg, sizeof(reg));
             pkt.source = 1; // 1=TCP
+            pkt.seq = seq++;
+            pkt.sample_mono_ms = now_mono_ms();
             ts_queue_push(&g_queue, &pkt);
-        } else {
-            //printf("[TCP] read error\n");
         }
         sleep_ms(cfg->interval_ms);
     }
