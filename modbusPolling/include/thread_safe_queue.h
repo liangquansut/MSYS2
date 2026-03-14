@@ -9,17 +9,16 @@
 #include <pthread.h>
 #endif
 
-// 线程安全队列定义
 typedef struct {
-    uint16_t regs[10];   // 示例：10个寄存器
-    int source;          // 0=RTU, 1=TCP
-    uint64_t seq;        // 每个来源独立递增序号
-    uint64_t sample_mono_ms; // 采样时刻（单调时钟）
-} data_packet_t;
+    uint16_t regs[10];      // 示例：10个寄存器
+    int source;             // 0=RTU, 1=TCP
+    uint64_t seq;           // 每个来源独立递增序号
+    uint64_t sample_mono_ms;// 采样时刻（单调时钟）
+} data_packet_t;    // 线程安全队列定义
 
 // 环形缓冲区实现的线程安全队列
 typedef struct {
-    data_packet_t buffer[TS_QUEUE_CAPACITY];
+    data_packet_t buffer[TS_QUEUE_CAPACITY];    // 固定大小的环形缓冲区
     int head;
     int tail;
     int count;

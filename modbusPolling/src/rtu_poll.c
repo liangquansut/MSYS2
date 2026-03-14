@@ -26,6 +26,11 @@ static void sleep_ms(int ms) {
 #endif
 }
 
+/**
+ * RTU轮询线程函数
+ * @param arg 线程参数，包含轮询配置
+ * @return 线程返回值
+ */
 thread_ret_t THREAD_CALL rtu_poll_thread(void *arg) {
     poll_config_t *cfg = (poll_config_t*)arg;
 
@@ -47,10 +52,10 @@ thread_ret_t THREAD_CALL rtu_poll_thread(void *arg) {
         if (rc == 10) {
             data_packet_t pkt;
             memcpy(pkt.regs, reg, sizeof(reg));
-            pkt.source = 0; // 0=RTU
-            pkt.seq = seq++;
-            pkt.sample_mono_ms = now_mono_ms();
-            ts_queue_push(&g_queue, &pkt);
+            pkt.source = 0;     // 0=RTU
+            pkt.seq = seq++;    // 每个来源独立递增的序列号
+            pkt.sample_mono_ms = now_mono_ms(); // 采样时刻（单调时钟）
+            ts_queue_push(&g_queue, &pkt); // 将数据包推入线程安全队列，供处理线程消费
         } else {
             printf("[RTU] read error: %s\n", modbus_strerror(errno));
         }

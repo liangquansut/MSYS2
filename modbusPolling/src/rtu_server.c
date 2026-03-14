@@ -2,7 +2,19 @@
 #include <stdlib.h>
 #include <string.h>
 
-// 这是一个简单的Modbus RTU服务器示例，使用libmodbus库实现。服务器会持续更新保持寄存器的值，并响应来自客户端的请求
+/**
+ * sleep_us函数用于在RTU服务器的主循环中控制寄存器值更新的频率。它接受一个整数参数us，表示需要睡眠的微秒数。
+ * 如果us小于或等于0，函数直接返回，不进行睡眠。否则，根据操作系统的不同，函数会使用不同的方法来实现微秒级的睡眠：
+ * 在Windows系统上，函数会将微秒转换为毫秒（因为Windows的Sleep函数以毫秒为单位），如果转换后的毫秒数小于或等于0，
+ * 则设置为1毫秒，以确保至少睡眠1毫秒。然后调用Sleep函数进行睡眠。
+ * 在POSIX系统上，函数会创建一个timespec结构体，设置其中的秒数为us除以1000000，纳秒数为us模1000000乘以1000。
+ * 然后调用nanosleep函数进行睡眠。
+ * 这个函数的设计允许RTU服务器在每次循环中更新寄存器值后，按照指定的频率进行睡眠，从而控制数据更新的速率，
+ * 避免过快地更新寄存器值导致通信问题或资源浪费。
+ * parse_us_arg函数用于解析命令行参数，获取指定的微秒级时间间隔。它接受命令行参数的数量argc、
+ * 参数数组argv、要解析的参数索引index、默认值default_us以及参数名称name。
+ * 函数首先检查argc是否小于或等于index，如果是，则返回默认
+ */
 static void sleep_us(int us) {
     if (us <= 0) {
         return;
@@ -20,6 +32,12 @@ static void sleep_us(int us) {
 #endif
 }
 
+/**
+ * parse_us_arg函数用于解析命令行参数，获取指定的微秒级时间间隔。它接受命令行参数的数量argc、
+ * 参数数组argv、要解析的参数索引index、默认值default_us以及参数名称name。函数首先检查argc是否小于或等于index，
+ * 如果是，则返回默认值default_us。否则，函数尝试将argv[index]转换为长整数，并检查转换是否成功以及数值是否在合理范围内（0到10000000微秒）。
+ * 如果转换失败或数值不合法，函数会打印一条错误消息，并返回默认值default_us。否则，函数返回解析得到的微秒数。
+ */
 static int parse_us_arg(int argc, char **argv, int index, int default_us, const char *name) {
     if (argc <= index) {
         return default_us;
@@ -42,9 +60,10 @@ int main(int argc, char **argv) {
     modbus_t *ctx = modbus_new_rtu(SERIAL_PORT_SERVER, 9600, 'N', 8, 1);   // 创建一个RTU服务器上下文（容器），使用指定的串口参数
     uint16_t tab_reg[10] = {0}; // 定义一个数组来存储保持寄存器的值，这里我们创建了一个包含10个寄存器的数组，并初始化为0
 
-    // 设定保持寄存器中的测试值
+    // 用随机数设定保持寄存器中的测试值
+    srand(time(NULL));
     for (int i = 0; i < 10; i++) {
-        tab_reg[i] = i + 1; // 将保持寄存器的值设置为1到10
+        tab_reg[i] = rand() % 65536; // 将保持寄存器的值设置为0到65535之间的随机数
     }
 
     modbus_mapping_t *mb_mapping =
